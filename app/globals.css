@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@theme inline {
+  /* Raw brand scale — reach for these directly when a semantic alias doesn't fit */
+  --color-forest-950: var(--forest-950);
+  --color-forest-900: var(--forest-900);
+  --color-forest-800: var(--forest-800);
+  --color-moss-700: var(--moss-700);
+  --color-moss-600: var(--moss-600);
+  --color-leaf-500: var(--leaf-500);
+  --color-lime-400: var(--lime-400);
+  --color-lime-300: var(--lime-300);
+
+  /* Semantic aliases used across components */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, serif;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 1rem;
+
+  /* Brand scale — exact tokens */
+  --forest-950: #0f2114;
+  --forest-900: #152a1a;
+  --forest-800: #1c3a22;
+  --moss-700: #2f5330;
+  --moss-600: #3f6b3f;
+  --leaf-500: #5f9e46;
+  --lime-400: #a8d95c;
+  --lime-300: #c3e88a;
+  --text-body: #f3f7ea;
+  --text-muted: rgb(243 247 234 / 68%);
+  --surface-card: rgb(255 255 255 / 6%);
+  --border-soft: rgb(255 255 255 / 12%);
+
+  /* Not part of the brand scale — a single restrained warm tone reserved for
+     real error/decline states (form validation, price drops). Everything
+     else in the UI stays within the forest/lime scale above. */
+  --danger: #e2734e;
+  --danger-foreground: #2a1208;
+
+  --background: var(--forest-950);
+  --foreground: var(--text-body);
+
+  --card: var(--surface-card);
+  --card-foreground: var(--text-body);
+  --popover: var(--forest-900);
+  --popover-foreground: var(--text-body);
+
+  --primary: var(--lime-400);
+  --primary-foreground: var(--forest-950);
+
+  --secondary: var(--moss-700);
+  --secondary-foreground: var(--text-body);
+
+  --muted: var(--forest-900);
+  --muted-foreground: var(--text-muted);
+
+  --accent: var(--lime-300);
+  --accent-foreground: var(--forest-950);
+
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
+
+  --border: var(--border-soft);
+  --input: rgb(255 255 255 / 16%);
+  --ring: var(--lime-400);
+
+  --chart-1: var(--lime-400);
+  --chart-2: var(--leaf-500);
+  --chart-3: var(--moss-600);
+  --chart-4: var(--lime-300);
+  --chart-5: var(--danger);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  /* Translucent surface used for cards, panels, and controls — thin border,
+     no drop shadow. This is the one surface treatment used everywhere. */
+  .glass {
+    background: var(--surface-card);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    border: 1px solid var(--border-soft);
+  }
+  /* Reserved for elements that truly float above content: modals, the
+     bottom nav, dropdown panels. Slightly more opaque, still no heavy shadow. */
+  .glass-strong {
+    background: rgb(21 42 26 / 82%);
+    backdrop-filter: blur(24px) saturate(130%);
+    -webkit-backdrop-filter: blur(24px) saturate(130%);
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 4px 24px rgb(0 0 0 / 25%);
+  }
+  .app-gradient {
+    background:
+      radial-gradient(900px 500px at 12% -8%, rgb(63 107 63 / 30%), transparent 60%),
+      var(--forest-950);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

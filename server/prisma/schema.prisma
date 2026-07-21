@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  farmer
+  buyer
+}
+
+enum LanguagePref {
+  en
+  sh
+}
+
+enum Season {
+  rainy
+  dry_winter
+}
+
+enum ListingStatus {
+  active
+  sold_out
+  archived
+}
+
+enum TransactionStatus {
+  Interested
+  Negotiating
+  Agreed
+  Completed
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String?  @unique
+  phone          String?  @unique
+  passwordHash   String   @map("password_hash")
+  role           Role
+  farmName       String?  @map("farm_name")
+  regionId       String?  @map("region_id")
+  region         Region?  @relation(fields: [regionId], references: [id])
+  languagePref   LanguagePref @default(en) @map("language_pref")
+  rating         Decimal? @db.Decimal(2, 1)
+  reviewCount    Int      @default(0) @map("review_count")
+  verified       Boolean  @default(false)
+  certifications String[] @default([])
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  listings           Listing[]
+  sentMessages       Message[]     @relation("sender")
+  receivedMessages   Message[]     @relation("receiver")
+  farmerTransactions Transaction[] @relation("farmerTransactions")
+  buyerTransactions  Transaction[] @relation("buyerTransactions")
+  refreshTokens      RefreshToken[]
+
+  @@map("users")
+}
+
+model Region {
+  id   String @id @default(uuid())
+  name String @unique
+
+  users       User[]
+  listings    Listing[]
+  adviceRules AdviceRule[]
+
+  @@map("regions")
+}
+
+model Crop {
+  id   String @id @default(uuid())
+  name String @unique
+
+  adviceRules AdviceRule[]
+
+  @@map("crops")
+}
+
+model AdviceRule {
+  id         String @id @default(uuid())
+  cropId     String @map("crop_id")
+  crop       Crop   @relation(fields: [cropId], references: [id])
+  regionId   String @map("region_id")
+  region     Region @relation(fields: [regionId], references: [id])
+  season     Season
+  planting   String
+  watering   String
+  fertilizer String
+  pest       String
+
+  @@unique([cropId, regionId, season])
+  @@map("advice_rules")
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  farmerId    String        @map("farmer_id")
+  farmer      User          @relation(fields: [farmerId], references: [id])
+  crop        String
+  grade       String?
+  quantity    String
+  unit        String
+  price       Decimal       @db.Decimal(10, 2)
+  marketPrice Decimal?      @map("market_price") @db.Decimal(10, 2)
+  regionId    String?       @map("region_id")
+  region      Region?       @relation(fields: [regionId], references: [id])
+  photoUrl    String?       @map("photo_url")
+  status      ListingStatus @default(active)
+  views       Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  messages     Message[]
+  transactions Transaction[]
+
+  @@map("listings")
+}
+
+model Message {
+  id         String    @id @default(uuid())
+  listingId  String    @map("listing_id")
+  listing    Listing   @relation(fields: [listingId], references: [id])
+  senderId   String    @map("sender_id")
+  sender     User      @relation("sender", fields: [senderId], references: [id])
+  receiverId String    @map("receiver_id")
+  receiver   User      @relation("receiver", fields: [receiverId], references: [id])
+  body       String
+  readAt     DateTime? @map("read_at")
+  sentAt     DateTime  @default(now()) @map("sent_at")
+
+  @@map("messages")
+}
+
+model Transaction {
+  id          String             @id @default(uuid())
+  listingId   String             @map("listing_id")
+  listing     Listing            @relation(fields: [listingId], references: [id])
+  farmerId    String             @map("farmer_id")
+  farmer      User               @relation("farmerTransactions", fields: [farmerId], references: [id])
+  buyerId     String             @map("buyer_id")
+  buyer       User               @relation("buyerTransactions", fields: [buyerId], references: [id])
+  quantity    String
+  totalPrice  Decimal            @map("total_price") @db.Decimal(10, 2)
+  status      TransactionStatus  @default(Interested)
+  buyerRating Decimal?           @map("buyer_rating") @db.Decimal(2, 1)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@map("transactions")
+}
+
+/// Deliberately has no foreign key to User — participant_code is generated
+/// client-side at consent time so research data can never be joined back to
+/// a real identity, even with full database access.
+model Feedback {
+  id               String   @id @default(uuid())
+  participantCode  String   @map("participant_code")
+  triggerContext   String   @map("trigger_context")
+  rating           Int
+  comment          String?
+  consentGiven     Boolean  @map("consent_given")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("feedback")
+}
+
+/// Refresh tokens are stored hashed (never plaintext) so a database leak
+/// alone doesn't hand out working tokens. Enables real revocation.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id])
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
