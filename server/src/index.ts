@@ -34,7 +34,15 @@ if (env.NODE_ENV === 'production') {
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin(origin, callback) {
+      // No Origin header = same-origin or a non-browser client (curl,
+      // server-to-server) — not a cross-origin browser request, allow it.
+      if (!origin || env.CORS_ORIGIN.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin ${origin} is not allowed by CORS_ORIGIN`));
+    },
     credentials: true, // required so the refresh-token cookie is sent/accepted cross-origin
   }),
 );
