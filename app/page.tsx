@@ -302,9 +302,6 @@ function Mission() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/30" />
       </div>
       <div className="relative mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-          <Leaf className="size-6" />
-        </div>
         <h2 className="mt-5 font-serif text-3xl italic font-semibold text-balance sm:text-4xl">
           Built to strengthen Zimbabwe&apos;s food system
         </h2>

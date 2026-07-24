@@ -4,7 +4,11 @@
 // job is making sure the HTML/JS/CSS/fonts/icons are available offline so a
 // hard reload doesn't hit the browser's native "no internet" page.
 
-const CACHE_VERSION = 'batanai-shell-v1'
+// Bumped to purge caches from a bug where plain /public images (replaced in
+// place under the same filename, e.g. marketing photos) were cached
+// permanently — cacheFirst was wrongly applied to them, so a swapped file
+// never showed up until the cache version changed. See fetch handler below.
+const CACHE_VERSION = 'batanai-shell-v2'
 // Every route is precached directly (not just discovered at runtime): auth
 // here is gated client-side after hydration (see components/app-shell.tsx),
 // so the server returns the same shell HTML for these regardless of login
@@ -58,7 +62,15 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  if (url.pathname.startsWith('/_next/static/') || /\.(png|jpg|jpeg|svg|woff2?|ico)$/.test(url.pathname)) {
+  // Cache-first is only safe for genuinely immutable, content-hashed build
+  // output — a changed file gets a new URL, so a stale cache entry can
+  // never be served. Everything else (PWA icons, and — critically — plain
+  // /public images like marketing photos, which get replaced in place
+  // under the *same* filename) goes through staleWhileRevalidate instead:
+  // still instant from cache, but it also always re-checks the network in
+  // the background and updates the cache, so a swapped file shows up on
+  // the next load instead of never.
+  if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request))
     return
   }
