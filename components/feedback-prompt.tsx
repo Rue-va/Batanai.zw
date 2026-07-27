@@ -5,6 +5,7 @@ import { Star } from "lucide-react"
 import { addFeedback } from "@/lib/feedback"
 import { hasResearchConsent } from "@/lib/auth"
 import { GlassCard } from "@/components/ui/glass"
+import { useLocale } from "@/lib/i18n/context"
 
 export function FeedbackPrompt({
   triggerContext,
@@ -13,6 +14,7 @@ export function FeedbackPrompt({
   triggerContext: string
   prompt: string
 }) {
+  const { t } = useLocale()
   const [consented, setConsented] = useState(false)
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
@@ -29,7 +31,7 @@ export function FeedbackPrompt({
   if (submitted) {
     return (
       <GlassCard className="p-4 text-xs text-primary">
-        Thanks — your feedback helps improve Batanai.zw for other farmers and buyers.
+        {t('feedback.thanks')}
       </GlassCard>
     )
   }
@@ -59,7 +61,7 @@ export function FeedbackPrompt({
         type="text"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Optional comment"
+        placeholder={t('feedback.commentPlaceholder')}
         className="mb-3 w-full rounded-xl bg-white/5 px-3 py-2 text-xs outline-none placeholder:text-muted-foreground"
       />
       <div className="flex gap-2">
@@ -72,14 +74,14 @@ export function FeedbackPrompt({
           }}
           className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
         >
-          Submit
+          {t('feedback.submit')}
         </button>
         <button
           type="button"
           onClick={() => setDismissed(true)}
           className="rounded-lg bg-white/5 px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
         >
-          Skip
+          {t('feedback.skip')}
         </button>
       </div>
     </GlassCard>

@@ -3,49 +3,63 @@
 import { useState } from 'react'
 import { X, Sparkles, Send } from 'lucide-react'
 import { adviceRules, marketPrices, weather } from '@/lib/data'
+import { useLocale } from '@/lib/i18n/context'
 
 type Msg = { role: 'user' | 'assistant'; text: string }
+type T = (key: string, vars?: Record<string, string | number>) => string
 
-const INTRO =
-  'Hi! I can help with crop guidance, market prices, or weather. I\'m a simple rule-based assistant, not a live AI model — try "maize advice" or "soybean price".'
-
-function answer(question: string): string {
+function answer(question: string, t: T): string {
   const q = question.toLowerCase()
 
   const priceCrop = marketPrices.find((m) => q.includes(m.crop.toLowerCase()))
   if (priceCrop && /price|market|cost|sell for|worth/.test(q)) {
     const up = priceCrop.change >= 0
-    return `${priceCrop.crop} is trading at $${priceCrop.price}/ton on the regional benchmark (${up ? '+' : ''}${priceCrop.change}% this week).`
+    return t('assistant.priceAnswer', { crop: priceCrop.crop, price: priceCrop.price, sign: up ? '+' : '', change: priceCrop.change })
   }
   if (/price|market/.test(q)) {
-    return `Today's regional benchmark: ${marketPrices.map((m) => `${m.crop} $${m.price}/ton`).join(', ')}.`
+    return t('assistant.priceSummary', { list: marketPrices.map((m) => `${m.crop} $${m.price}/ton`).join(', ') })
   }
 
   if (/weather|rain|forecast|temperature/.test(q)) {
-    return `${weather.location}: ${weather.temp}°C, ${weather.condition}, ${weather.rainChance}% chance of rain, wind ${weather.wind} km/h.`
+    return t('assistant.weatherAnswer', {
+      location: weather.location,
+      temp: weather.temp,
+      condition: weather.condition,
+      rain: weather.rainChance,
+      wind: weather.wind,
+    })
   }
 
   const cropRule = adviceRules.find((r) => q.includes(r.crop.toLowerCase()))
   if (cropRule) {
-    return `${cropRule.crop} — ${cropRule.region}, ${cropRule.season}:\nPlanting: ${cropRule.planting}\nWatering: ${cropRule.watering}\nFertilizer: ${cropRule.fertilizer}\nPest & disease: ${cropRule.pest}`
+    return t('assistant.adviceAnswer', {
+      crop: cropRule.crop,
+      region: cropRule.region,
+      season: cropRule.season,
+      planting: cropRule.planting,
+      watering: cropRule.watering,
+      fertilizer: cropRule.fertilizer,
+      pest: cropRule.pest,
+    })
   }
   if (/advice|guidance|plant|grow/.test(q)) {
     const crops = Array.from(new Set(adviceRules.map((r) => r.crop))).join(', ')
-    return `I have planting guidance for: ${crops}. Ask e.g. "maize advice", or open Decision Support for the full crop/region/season lookup.`
+    return t('assistant.adviceList', { crops })
   }
 
   if (/list|sell my|publish/.test(q)) {
-    return 'Head to Marketplace → "New Listing" to publish your crop, quantity, and price. Buyers can then express interest directly.'
+    return t('assistant.listingHelp')
   }
   if (/buy|browse|find produce/.test(q)) {
-    return 'Head to Browse (Marketplace) to search listings by crop or region, then tap "Express interest" to start a conversation.'
+    return t('assistant.browseHelp')
   }
 
-  return 'Try asking about a crop ("maize advice"), a price ("soybean price"), or the weather ("weather today").'
+  return t('assistant.fallback')
 }
 
 export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', text: INTRO }])
+  const { t } = useLocale()
+  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', text: t('assistant.intro') }])
   const [input, setInput] = useState('')
 
   if (!open) return null
@@ -53,7 +67,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
   function send() {
     const q = input.trim()
     if (!q) return
-    setMessages((prev) => [...prev, { role: 'user', text: q }, { role: 'assistant', text: answer(q) }])
+    setMessages((prev) => [...prev, { role: 'user', text: q }, { role: 'assistant', text: answer(q, t) }])
     setInput('')
   }
 
@@ -66,9 +80,9 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="size-4" />
-            <span className="text-sm font-semibold">Assistant</span>
+            <span className="text-sm font-semibold">{t('assistant.title')}</span>
           </div>
-          <button onClick={onClose} aria-label="Close assistant" className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label={t('assistant.close')} className="text-muted-foreground hover:text-foreground">
             <X className="size-4" />
           </button>
         </div>
@@ -93,7 +107,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="Ask about crops, weather, prices..."
+            placeholder={t('assistant.inputPlaceholder')}
             className="glass flex-1 rounded-2xl px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
           />
           <button

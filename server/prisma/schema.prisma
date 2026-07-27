@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   farmer
   buyer
+  admin
 }
 
 enum LanguagePref {
@@ -51,6 +52,17 @@ model User {
   verified       Boolean  @default(false)
   certifications String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at")
+  lastLoginAt    DateTime? @map("last_login_at")
+
+  // One-time-or-occasionally-updated location, not continuous tracking —
+  // set explicitly by the user (Geolocation API, with consent) or typed in
+  // manually. latitude/longitude are precise and used only for server-side
+  // distance sorting; they are NEVER returned on any buyer-facing endpoint
+  // (see listings.routes.ts) — locationLabel (e.g. "Chinhoyi") is the only
+  // thing shown to other users.
+  latitude       Decimal? @db.Decimal(9, 6)
+  longitude      Decimal? @db.Decimal(9, 6)
+  locationLabel  String?  @map("location_label")
 
   listings           Listing[]
   sentMessages       Message[]     @relation("sender")
@@ -58,6 +70,8 @@ model User {
   farmerTransactions Transaction[] @relation("farmerTransactions")
   buyerTransactions  Transaction[] @relation("buyerTransactions")
   refreshTokens      RefreshToken[]
+  ratingsGiven       Rating[]      @relation("ratingsGiven")
+  ratingsReceived    Rating[]      @relation("ratingsReceived")
 
   @@map("users")
 }
@@ -150,8 +164,28 @@ model Transaction {
   buyerRating Decimal?           @map("buyer_rating") @db.Decimal(2, 1)
   createdAt   DateTime           @default(now()) @map("created_at")
   updatedAt   DateTime           @updatedAt @map("updated_at")
+  rating      Rating?
 
   @@map("transactions")
+}
+
+/// One rating per completed transaction, buyer -> farmer. Kept as its own
+/// table (rather than reusing Transaction.buyerRating, which nothing ever
+/// wrote to) so "who gave it, who received it, comment" is queryable
+/// directly for both the admin view and a user's own received/given lists.
+model Rating {
+  id            String   @id @default(uuid())
+  transactionId String   @unique @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  fromUserId    String   @map("from_user_id")
+  fromUser      User     @relation("ratingsGiven", fields: [fromUserId], references: [id])
+  toUserId      String   @map("to_user_id")
+  toUser        User     @relation("ratingsReceived", fields: [toUserId], references: [id])
+  value         Int
+  comment       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("ratings")
 }
 
 /// Deliberately has no foreign key to User — participant_code is generated

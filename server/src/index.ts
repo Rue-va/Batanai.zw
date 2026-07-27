@@ -10,6 +10,8 @@ import { transactionsRouter } from './routes/transactions.routes.js';
 import { adviceRouter } from './routes/advice.routes.js';
 import { feedbackRouter } from './routes/feedback.routes.js';
 import { referenceRouter } from './routes/reference.routes.js';
+import { ratingsRouter } from './routes/ratings.routes.js';
+import { adminRouter } from './routes/admin.routes.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
@@ -58,6 +60,8 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/advice', adviceRouter);
 app.use('/api/feedback', feedbackRouter);
+app.use('/api/ratings', ratingsRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api', referenceRouter); // /api/regions, /api/crops
 
 app.use(notFoundHandler);

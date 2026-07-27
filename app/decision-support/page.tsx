@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/input'
 import { FeedbackPrompt } from '@/components/feedback-prompt'
 import { getSession } from '@/lib/auth'
+import { useLocale } from '@/lib/i18n/context'
 import { cropRecommendations, recommendations, scanResults } from '@/lib/data'
 import { getAdvice, type AdviceRule, type Season } from '@/lib/queries/advice'
 import { getRegions, getCrops, type Region, type Crop } from '@/lib/queries/reference'
@@ -38,6 +39,7 @@ const fitTone = { 'Great fit': 'lime', 'Good fit': 'accent' } as const
 
 export default function DecisionSupportPage() {
   const router = useRouter()
+  const { t } = useLocale()
   const [allowed, setAllowed] = useState(false)
 
   useEffect(() => {
@@ -66,22 +68,24 @@ export default function DecisionSupportPage() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-primary">
             <BrainCircuit className="size-5" />
-            <span className="text-sm font-semibold">Decision Support System</span>
+            <span className="text-sm font-semibold">{t('decisionSupport.badge')}</span>
           </div>
           <h1 className="font-serif text-2xl italic font-semibold text-balance sm:text-3xl">
-            Rule-based guidance for smarter farming
+            {t('decisionSupport.heading')}
           </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Guidance below comes from a rule-based lookup table (crop, region, season) sourced
-            from agronomic reference material — not a trained prediction model.
-          </p>
+          <p className="max-w-2xl text-sm text-muted-foreground">{t('decisionSupport.subtitle')}</p>
         </div>
 
         {/* Crop recommendation engine */}
         <section>
           <SectionTitle
-            title="Crop Suggestions"
-            action={<Pill tone="muted">Regional reference guide</Pill>}
+            title={t('decisionSupport.cropSuggestions')}
+            action={
+              <div className="flex items-center gap-1.5">
+                <Pill tone="muted">{t('decisionSupport.regionalReferenceGuide')}</Pill>
+                <Pill tone="muted">{t('common.sampleData')}</Pill>
+              </div>
+            }
           />
           <div className="grid gap-4 md:grid-cols-3">
             {cropRecommendations.map((c) => (
@@ -121,7 +125,10 @@ export default function DecisionSupportPage() {
 
         {/* Smart recommendations */}
         <section>
-          <SectionTitle title="Recommendations & Alerts" />
+          <SectionTitle
+            title={t('decisionSupport.recommendationsAlerts')}
+            action={<Pill tone="muted">{t('common.sampleData')}</Pill>}
+          />
           <div className="grid gap-4 md:grid-cols-2">
             {recommendations.map((r) => {
               const Icon = recIcons[r.kind as keyof typeof recIcons]
@@ -153,17 +160,13 @@ export default function DecisionSupportPage() {
         <GlassCard strong className="p-6">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="size-4" />
-            <span className="text-sm font-semibold">Weather Advisory</span>
+            <span className="text-sm font-semibold">{t('decisionSupport.weatherAdvisory')}</span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            A heat wave is expected Saturday. Recommended actions: monitor soil moisture
-            closely, consider shade cloth for heat-sensitive plots, and apply mulch to reduce
-            evaporation. Adjust irrigation to early morning to minimise water loss.
-          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('decisionSupport.weatherAdvisoryNote')}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Pill tone="accent">Peak 34°C Saturday</Pill>
-            <Pill tone="lime">Irrigate 5–7 AM</Pill>
-            <Pill tone="muted">Mulch exposed plots</Pill>
+            <Pill tone="accent">{t('decisionSupport.peakTemp')}</Pill>
+            <Pill tone="lime">{t('decisionSupport.irrigateWindow')}</Pill>
+            <Pill tone="muted">{t('decisionSupport.mulchPlots')}</Pill>
           </div>
         </GlassCard>
       </div>
@@ -171,12 +174,12 @@ export default function DecisionSupportPage() {
   )
 }
 
-const SEASON_OPTIONS: { value: Season; label: string }[] = [
-  { value: 'rainy', label: 'Rainy season (Nov–Mar)' },
-  { value: 'dry_winter', label: 'Dry/winter season (Apr–Aug)' },
-]
-
 function AdviceLookup() {
+  const { t } = useLocale()
+  const SEASON_OPTIONS: { value: Season; label: string }[] = [
+    { value: 'rainy', label: t('decisionSupport.seasonRainy') },
+    { value: 'dry_winter', label: t('decisionSupport.seasonDryWinter') },
+  ]
   const [crops, setCrops] = useState<Crop[]>([])
   const [regionOptions, setRegionOptions] = useState<Region[]>([])
   const [crop, setCrop] = useState('')
@@ -205,10 +208,10 @@ function AdviceLookup() {
 
   return (
     <GlassCard className="p-6">
-      <SectionTitle title="Crop & Region Advice Lookup" />
+      <SectionTitle title={t('decisionSupport.adviceLookupTitle')} />
       <div className="grid gap-3 sm:grid-cols-3">
         <Select value={crop} onChange={(e) => setCrop(e.target.value)}>
-          <option value="">Select crop</option>
+          <option value="">{t('decisionSupport.selectCrop')}</option>
           {crops.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
@@ -216,7 +219,7 @@ function AdviceLookup() {
           ))}
         </Select>
         <Select value={region} onChange={(e) => setRegion(e.target.value)}>
-          <option value="">Select region</option>
+          <option value="">{t('decisionSupport.selectRegion')}</option>
           {regionOptions.map((r) => (
             <option key={r.id} value={r.name}>
               {r.name}
@@ -224,7 +227,7 @@ function AdviceLookup() {
           ))}
         </Select>
         <Select value={season} onChange={(e) => setSeason(e.target.value as Season)}>
-          <option value="">Select season</option>
+          <option value="">{t('decisionSupport.selectSeason')}</option>
           {SEASON_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
@@ -233,7 +236,7 @@ function AdviceLookup() {
         </Select>
       </div>
       <Button onClick={handleSearch} disabled={!crop || !region || !season || loading} className="mt-3 w-full sm:w-auto sm:px-6">
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} Get guidance
+        {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />} {t('decisionSupport.getGuidance')}
       </Button>
 
       {searched && !loading && (
@@ -241,22 +244,21 @@ function AdviceLookup() {
           {rule ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <AdviceBlock icon={CalendarClock} label="Planting" text={rule.planting} />
-                <AdviceBlock icon={Droplet} label="Watering" text={rule.watering} />
-                <AdviceBlock icon={FlaskConical} label="Fertilizer" text={rule.fertilizer} />
-                <AdviceBlock icon={Bug} label="Pest & disease" text={rule.pest} />
+                <AdviceBlock icon={CalendarClock} label={t('decisionSupport.planting')} text={rule.planting} />
+                <AdviceBlock icon={Droplet} label={t('decisionSupport.watering')} text={rule.watering} />
+                <AdviceBlock icon={FlaskConical} label={t('decisionSupport.fertilizer')} text={rule.fertilizer} />
+                <AdviceBlock icon={Bug} label={t('decisionSupport.pestDisease')} text={rule.pest} />
               </div>
               <div className="max-w-md">
                 <FeedbackPrompt
                   triggerContext="post_advice"
-                  prompt="Was this advice helpful and clear?"
+                  prompt={t('decisionSupport.feedbackPostAdvice')}
                 />
               </div>
             </>
           ) : (
             <p className="rounded-2xl bg-white/5 p-4 text-sm text-muted-foreground">
-              No guidance yet for that crop/region/season combination — this reference table is
-              still growing. Try a different combination above.
+              {t('decisionSupport.noGuidanceYet')}
             </p>
           )}
         </div>
@@ -286,6 +288,7 @@ function AdviceBlock({
 }
 
 function PlantScan() {
+  const { t } = useLocale()
   const [result, setResult] = useState(scanResults[0])
   const [photo, setPhoto] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
@@ -318,21 +321,19 @@ function PlantScan() {
         <div className="absolute inset-0 bg-gradient-to-t from-forest-950/95 to-transparent" />
         <div className="glass-strong absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs">
           <ScanLine className="size-3.5 text-primary" />
-          {scanning ? 'Analyzing...' : 'Simulated result'}
+          {scanning ? t('decisionSupport.analyzing') : t('decisionSupport.simulatedResult')}
         </div>
         <div className="absolute bottom-3 left-4">
-          <p className="text-xs text-muted-foreground">Scan Result</p>
+          <p className="text-xs text-muted-foreground">{t('decisionSupport.scanResult')}</p>
           <p className="font-bold">{result.crop}</p>
         </div>
       </div>
       <div className="space-y-3 p-4">
-        <p className="text-[11px] text-muted-foreground">
-          Stretch feature — cycles through simulated results, not a real image classifier yet.
-        </p>
+        <p className="text-[11px] text-muted-foreground">{t('decisionSupport.scanNote')}</p>
 
         {scanning ? (
           <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
-            <Loader2 className="size-4 animate-spin text-primary" /> Analyzing photo...
+            <Loader2 className="size-4 animate-spin text-primary" /> {t('decisionSupport.analyzingPhoto')}
           </div>
         ) : (
           result.issues.map((issue) => (
@@ -356,11 +357,11 @@ function PlantScan() {
 
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
         <Button onClick={() => inputRef.current?.click()} disabled={scanning} size="sm" className="mt-1 w-full">
-          {scanned ? 'Rescan plant' : 'Scan a plant photo'}
+          {scanned ? t('decisionSupport.rescanPlant') : t('decisionSupport.scanPlantPhoto')}
         </Button>
 
         {scanned && (
-          <FeedbackPrompt triggerContext="post_scan" prompt="Was this scan result useful?" />
+          <FeedbackPrompt triggerContext="post_scan" prompt={t('decisionSupport.feedbackPostScan')} />
         )}
       </div>
     </GlassCard>

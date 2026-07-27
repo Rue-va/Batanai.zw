@@ -3,15 +3,15 @@
 import type * as React from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { Search, Loader2 } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
 import { OnlineStatus } from '@/components/online-status'
 import { NotificationsBell } from '@/components/notifications-bell'
 import { Logo } from '@/components/logo'
-import { farmer } from '@/lib/data'
+import { Avatar } from '@/components/avatar'
 import { getSession, refreshSession, type SessionUser } from '@/lib/auth'
 import { watchConnectivityAndSync } from '@/lib/offline/sync'
+import { useLocale } from '@/lib/i18n/context'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -51,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function TopBar({ user }: { user: SessionUser | null }) {
+  const { t } = useLocale()
   return (
     <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-4 sm:px-6">
       <div className="flex items-center gap-2">
@@ -62,7 +63,7 @@ function TopBar({ user }: { user: SessionUser | null }) {
         <Search className="size-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search crops, buyers, listings..."
+          placeholder={t('topbar.searchPlaceholder')}
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
@@ -71,16 +72,10 @@ function TopBar({ user }: { user: SessionUser | null }) {
         <OnlineStatus />
         <NotificationsBell />
         <div className="glass flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4">
-          <Image
-            src={farmer.avatar || '/placeholder.svg'}
-            alt={farmer.name}
-            width={32}
-            height={32}
-            className="size-8 rounded-full object-cover"
-          />
+          <Avatar name={user?.name ?? '?'} size={32} />
           <div className="hidden leading-tight sm:block">
-            <p className="text-xs font-semibold">{user?.name ?? farmer.name}</p>
-            <p className="text-[10px] text-muted-foreground">{user?.farmName ?? farmer.farmName}</p>
+            <p className="text-xs font-semibold">{user?.name}</p>
+            <p className="text-[10px] text-muted-foreground">{user?.farmName}</p>
           </div>
         </div>
       </div>

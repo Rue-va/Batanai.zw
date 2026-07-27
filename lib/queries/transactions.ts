@@ -17,6 +17,7 @@ export type Transaction = {
   listing?: { crop: string }
   farmer?: { id: string; name: string; farmName: string | null }
   buyer?: { id: string; name: string; farmName: string | null }
+  rating?: { id: string; value: number; comment: string | null } | null
 }
 
 export async function getTransactions(): Promise<Transaction[]> {

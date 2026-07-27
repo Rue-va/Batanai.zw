@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Manrope } from 'next/font/google'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
+import { LocaleProvider } from '@/lib/i18n/context'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -46,9 +47,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable} bg-background`}>
       <body className="antialiased app-gradient min-h-screen">
-        {children}
-        <ServiceWorkerRegistration />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <LocaleProvider>
+          {children}
+          <ServiceWorkerRegistration />
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </LocaleProvider>
       </body>
     </html>
   )

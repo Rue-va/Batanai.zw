@@ -8,7 +8,7 @@
 import { apiFetch, ApiError } from './api'
 import { getAccessToken, setAccessToken, clearAccessToken } from './token-store'
 
-export type Role = 'farmer' | 'buyer'
+export type Role = 'farmer' | 'buyer' | 'admin'
 
 export type SessionUser = {
   id: string
@@ -24,6 +24,10 @@ export type SessionUser = {
   verified: boolean
   certifications: string[]
   createdAt: string
+  lastLoginAt: string | null
+  latitude: string | null
+  longitude: string | null
+  locationLabel: string | null
 }
 
 const USER_KEY = 'batanai.user'
@@ -138,10 +142,23 @@ export async function refreshSession(): Promise<SessionUser | null> {
   }
 }
 
-export type UpdateProfileInput = { name?: string; farmName?: string; role?: Role; languagePref?: 'en' | 'sh' }
+// Deliberately excludes 'admin' — this is the same endpoint the account-type
+// preview toggle uses, and promoting to admin must never be reachable
+// through it. The backend enforces this too (see updateProfileSchema in
+// server/src/routes/auth.routes.ts); this type just keeps the frontend
+// honest about what's actually a valid call.
+export type UpdateProfileInput = { name?: string; farmName?: string; languagePref?: 'en' | 'sh' }
 
 export async function updateProfile(input: UpdateProfileInput): Promise<SessionUser> {
   const data = await apiFetch<{ user: SessionUser }>('/api/auth/me/update', { method: 'PATCH', body: input })
+  cacheUser(data.user)
+  return data.user
+}
+
+export type UpdateLocationInput = { latitude?: number; longitude?: number; locationLabel?: string }
+
+export async function updateLocation(input: UpdateLocationInput): Promise<SessionUser> {
+  const data = await apiFetch<{ user: SessionUser }>('/api/auth/me/location', { method: 'PATCH', body: input })
   cacheUser(data.user)
   return data.user
 }

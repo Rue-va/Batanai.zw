@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Bell, Clock, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import { tasks, recommendations, marketPrices } from '@/lib/data'
+import { useLocale } from '@/lib/i18n/context'
 
 type Notification = {
   id: string
@@ -11,12 +12,12 @@ type Notification = {
   tone: 'accent' | 'danger' | 'lime'
 }
 
-function buildNotifications(): Notification[] {
+function buildNotifications(t: (key: string, vars?: Record<string, string | number>) => string): Notification[] {
   const list: Notification[] = []
 
   tasks
-    .filter((t) => t.status === 'due')
-    .forEach((t) => list.push({ id: `task-${t.title}`, text: `Due today: ${t.title}`, icon: Clock, tone: 'accent' }))
+    .filter((task) => task.status === 'due')
+    .forEach((task) => list.push({ id: `task-${task.title}`, text: t('notifications.dueToday', { task: task.title }), icon: Clock, tone: 'accent' }))
 
   recommendations
     .filter((r) => r.priority === 'high')
@@ -27,7 +28,7 @@ function buildNotifications(): Notification[] {
     .forEach((m) =>
       list.push({
         id: `price-${m.crop}`,
-        text: `${m.crop} price ${m.change >= 0 ? 'up' : 'down'} ${Math.abs(m.change)}% this week`,
+        text: t(m.change >= 0 ? 'notifications.priceUp' : 'notifications.priceDown', { crop: m.crop, change: Math.abs(m.change) }),
         icon: m.change >= 0 ? TrendingUp : TrendingDown,
         tone: m.change >= 0 ? 'lime' : 'danger',
       }),
@@ -39,9 +40,10 @@ function buildNotifications(): Notification[] {
 const toneText = { accent: 'text-accent', danger: 'text-destructive', lime: 'text-primary' } as const
 
 export function NotificationsBell() {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   const [read, setRead] = useState<Set<string>>(new Set())
-  const notifications = buildNotifications()
+  const notifications = buildNotifications(t)
   const unreadCount = notifications.filter((n) => !read.has(n.id)).length
 
   return (
@@ -61,10 +63,10 @@ export function NotificationsBell() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="glass-strong absolute right-0 top-12 z-50 w-80 rounded-2xl p-3">
-            <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">Notifications</p>
+            <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">{t('notifications.title')}</p>
             <div className="max-h-80 space-y-1 overflow-y-auto no-scrollbar">
               {notifications.length === 0 && (
-                <p className="p-3 text-xs text-muted-foreground">You&apos;re all caught up.</p>
+                <p className="p-3 text-xs text-muted-foreground">{t('notifications.allCaughtUp')}</p>
               )}
               {notifications.map((n) => {
                 const Icon = n.icon

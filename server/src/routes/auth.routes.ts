@@ -78,7 +78,7 @@ authRouter.post(
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const user = await prisma.user.create({
-      data: { name, passwordHash, role, email, phone, farmName, regionId, languagePref },
+      data: { name, passwordHash, role, email, phone, farmName, regionId, languagePref, lastLoginAt: new Date() },
     });
 
     const accessToken = signAccessToken({ sub: user.id, role: user.role });
@@ -118,11 +118,13 @@ authRouter.post(
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new HttpError(401, 'Invalid credentials');
 
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
     const accessToken = signAccessToken({ sub: user.id, role: user.role });
     const { refreshToken, expiresAt } = await issueSession(user.id);
     setRefreshCookie(res, refreshToken, expiresAt);
 
-    res.json({ accessToken, user: toPublicUser(user) });
+    res.json({ accessToken, user: toPublicUser({ ...user, lastLoginAt: new Date() }) });
   }),
 );
 
@@ -180,10 +182,12 @@ authRouter.get(
   }),
 );
 
+// role is deliberately not accepted here — a user's role is fixed at signup.
+// Changing it is an admin-only action performed via direct DB update (or a
+// seed script), never through a self-service API call.
 const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   farmName: z.string().trim().min(1).max(150).optional(),
-  role: z.enum(['farmer', 'buyer']).optional(),
   languagePref: z.enum(['en', 'sh']).optional(),
 });
 
@@ -191,6 +195,32 @@ authRouter.patch(
   '/me/update',
   requireAuth,
   validate({ body: updateProfileSchema }),
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.update({ where: { id: req.user!.sub }, data: req.body });
+    res.json({ user: toPublicUser(user) });
+  }),
+);
+
+// A one-time-or-occasionally-updated location, not continuous tracking —
+// the caller sets this explicitly (Geolocation API, with the browser's own
+// permission prompt) or types a region/town manually. Either is accepted on
+// its own; latitude/longitude are precise and only ever used server-side
+// for distance sorting (see listings.routes.ts) — they are never returned
+// to other users, only locationLabel is.
+const updateLocationSchema = z
+  .object({
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+    locationLabel: z.string().trim().min(1).max(120).optional(),
+  })
+  .refine((data) => data.locationLabel !== undefined || (data.latitude !== undefined && data.longitude !== undefined), {
+    message: 'Provide a locationLabel, or both latitude and longitude',
+  });
+
+authRouter.patch(
+  '/me/location',
+  requireAuth,
+  validate({ body: updateLocationSchema }),
   asyncHandler(async (req, res) => {
     const user = await prisma.user.update({ where: { id: req.user!.sub }, data: req.body });
     res.json({ user: toPublicUser(user) });

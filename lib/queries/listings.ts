@@ -16,11 +16,23 @@ export type Listing = {
   status: 'active' | 'sold_out' | 'archived'
   views: number
   createdAt: string
-  farmer?: { id: string; name: string; farmName: string | null; rating: string | null; verified: boolean }
+  // distanceKm is only ever present when sort=distance was requested and
+  // the caller has a saved location — see getListings below.
+  distanceKm?: number | null
+  farmer?: {
+    id: string
+    name: string
+    farmName: string | null
+    rating: string | null
+    verified: boolean
+    locationLabel?: string | null
+  }
   _pendingSync?: boolean
 }
 
-export async function getListings(filters: { q?: string; regionId?: string; status?: string } = {}): Promise<Listing[]> {
+export async function getListings(
+  filters: { q?: string; regionId?: string; status?: string; sort?: 'distance' } = {},
+): Promise<Listing[]> {
   try {
     const params = new URLSearchParams(filters as Record<string, string>)
     const data = await apiFetch<{ listings: Listing[] }>(`/api/listings?${params}`)

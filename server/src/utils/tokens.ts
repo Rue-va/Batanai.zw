@@ -4,7 +4,7 @@ import { env } from '../lib/env.js';
 
 export type AccessTokenPayload = {
   sub: string; // user id
-  role: 'farmer' | 'buyer';
+  role: 'farmer' | 'buyer' | 'admin';
 };
 
 export function signAccessToken(payload: AccessTokenPayload): string {

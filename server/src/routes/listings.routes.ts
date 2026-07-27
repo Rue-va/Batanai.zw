@@ -2,22 +2,43 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, optionalAuth } from '../middleware/auth.js';
 import { asyncHandler, HttpError } from '../middleware/errorHandler.js';
+import { haversineKm } from '../utils/distance.js';
 
 export const listingsRouter = Router();
+
+// locationLabel (a town/district string) is the only location detail ever
+// exposed here — precise latitude/longitude belong to the farmer's account
+// and are never selected into a buyer-facing response. See distance-sort
+// below, which computes with the raw values server-side and returns only
+// the resulting distance, not the coordinates themselves.
+const PUBLIC_FARMER_SELECT = { id: true, name: true, farmName: true, rating: true, verified: true, locationLabel: true } as const;
 
 const browseQuerySchema = z.object({
   q: z.string().trim().optional(),
   regionId: z.string().uuid().optional(),
   status: z.enum(['active', 'sold_out', 'archived']).default('active'),
+  sort: z.enum(['distance']).optional(),
 });
 
 listingsRouter.get(
   '/',
+  optionalAuth,
   validate({ query: browseQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { q, regionId, status } = req.query as unknown as z.infer<typeof browseQuerySchema>;
+    const { q, regionId, status, sort } = req.query as unknown as z.infer<typeof browseQuerySchema>;
+
+    let origin: { latitude: number; longitude: number } | null = null;
+    if (sort === 'distance') {
+      if (!req.user) throw new HttpError(401, 'Sign in to sort by distance from your location');
+      const me = await prisma.user.findUnique({ where: { id: req.user.sub }, select: { latitude: true, longitude: true } });
+      if (!me?.latitude || !me?.longitude) {
+        throw new HttpError(400, 'Set your location in your profile first to sort by distance');
+      }
+      origin = { latitude: Number(me.latitude), longitude: Number(me.longitude) };
+    }
+
     const listings = await prisma.listing.findMany({
       where: {
         status,
@@ -31,10 +52,31 @@ listingsRouter.get(
             }
           : {}),
       },
-      include: { farmer: { select: { id: true, name: true, farmName: true, rating: true, verified: true } }, region: true },
+      include: { farmer: { select: { ...PUBLIC_FARMER_SELECT, latitude: true, longitude: true } }, region: true },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ listings });
+
+    // Distance is computed here (using the farmer's coords fetched above
+    // for the calculation) and then stripped back out before responding —
+    // origin's own coordinates, and every farmer's, stay server-side only.
+    let withDistance = listings.map((l) => ({
+      ...l,
+      distanceKm:
+        origin && l.farmer.latitude != null && l.farmer.longitude != null
+          ? haversineKm(origin.latitude, origin.longitude, Number(l.farmer.latitude), Number(l.farmer.longitude))
+          : null,
+    }));
+    if (sort === 'distance') {
+      withDistance = withDistance
+        .filter((l) => l.distanceKm != null)
+        .sort((a, b) => a.distanceKm! - b.distanceKm!);
+    }
+    const sanitized = withDistance.map((l) => ({
+      ...l,
+      farmer: { ...l.farmer, latitude: undefined, longitude: undefined },
+    }));
+
+    res.json({ listings: sanitized });
   }),
 );
 
@@ -58,7 +100,7 @@ listingsRouter.get(
   asyncHandler(async (req, res) => {
     const listing = await prisma.listing.findUnique({
       where: { id: req.params.id },
-      include: { farmer: { select: { id: true, name: true, farmName: true, rating: true, verified: true } }, region: true },
+      include: { farmer: { select: PUBLIC_FARMER_SELECT }, region: true },
     });
     if (!listing) throw new HttpError(404, 'Listing not found');
     res.json({ listing });

@@ -23,7 +23,12 @@ transactionsRouter.get(
     const userId = req.user!.sub;
     const transactions = await prisma.transaction.findMany({
       where: { OR: [{ farmerId: userId }, { buyerId: userId }] },
-      include: { listing: true, farmer: { select: { id: true, name: true, farmName: true } }, buyer: { select: { id: true, name: true, farmName: true } } },
+      include: {
+        listing: true,
+        farmer: { select: { id: true, name: true, farmName: true } },
+        buyer: { select: { id: true, name: true, farmName: true } },
+        rating: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ transactions });
@@ -96,6 +101,55 @@ transactionsRouter.patch(
 
     const updated = await prisma.transaction.update({ where: { id: req.params.id }, data: { status: requested as any } });
     res.json({ transaction: updated });
+  }),
+);
+
+const rateSchema = z.object({
+  value: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(500).optional(),
+});
+
+// Buyer rates the farmer once a trade is Completed — the only path that
+// ever creates a Rating row. One per transaction (enforced by the unique
+// constraint on Rating.transactionId as well as the check below).
+transactionsRouter.post(
+  '/:id/rating',
+  requireAuth,
+  requireRole('buyer'),
+  validate({ params: z.object({ id: z.string().uuid() }), body: rateSchema }),
+  asyncHandler(async (req, res) => {
+    const transaction = await prisma.transaction.findUnique({ where: { id: req.params.id } });
+    if (!transaction) throw new HttpError(404, 'Transaction not found');
+    if (transaction.buyerId !== req.user!.sub) throw new HttpError(403, 'Not your transaction');
+    if (transaction.status !== 'Completed') throw new HttpError(400, 'Can only rate a completed transaction');
+
+    const existing = await prisma.rating.findUnique({ where: { transactionId: transaction.id } });
+    if (existing) throw new HttpError(409, 'This transaction has already been rated');
+
+    const { value, comment } = req.body as z.infer<typeof rateSchema>;
+
+    const rating = await prisma.$transaction(async (tx) => {
+      const created = await tx.rating.create({
+        data: { transactionId: transaction.id, fromUserId: req.user!.sub, toUserId: transaction.farmerId, value, comment },
+      });
+
+      // Recompute the farmer's aggregate rating from every rating they've
+      // received, rather than incrementally averaging — simpler to reason
+      // about and self-corrects if a rating is ever removed later.
+      const agg = await tx.rating.aggregate({
+        where: { toUserId: transaction.farmerId },
+        _avg: { value: true },
+        _count: true,
+      });
+      await tx.user.update({
+        where: { id: transaction.farmerId },
+        data: { rating: agg._avg.value, reviewCount: agg._count },
+      });
+
+      return created;
+    });
+
+    res.status(201).json({ rating });
   }),
 );
 

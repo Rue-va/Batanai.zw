@@ -29,57 +29,17 @@ import {
   type Role,
 } from "@/lib/auth"
 import { ApiError } from "@/lib/api"
+import { useLocale, type Locale } from "@/lib/i18n/context"
 
 type Mode = "login" | "signup"
 type Step = "splash" | "auth"
-type Lang = "en" | "sh"
-
-const copy = {
-  en: {
-    tagline: ["Grow with confidence.", "Trade with trust."],
-    cta: "Get started",
-    tabs: { login: "Sign In", signup: "Sign Up" },
-    heading: { login: "Welcome back", signup: "Create your account" },
-    subheading: {
-      login: "Sign in to manage your farm and listings.",
-      signup: "Join farmers and buyers trading smarter with Batanai.zw.",
-    },
-    iAmA: "I am a...",
-    farmer: "Farmer",
-    buyer: "Buyer",
-    submit: { login: "Sign In", signup: "Create Account" },
-    submitLoading: { login: "Signing in...", signup: "Creating account..." },
-    switchPrompt: { login: "New to Batanai.zw? ", signup: "Already have an account? " },
-    switchAction: { login: "Create an account", signup: "Sign in" },
-  },
-  sh: {
-    tagline: ["Kura nechivimbo.", "Tengesa nekuvimbana."],
-    cta: "Tanga",
-    tabs: { login: "Pinda", signup: "Nyoresa" },
-    heading: { login: "Tinokuseva", signup: "Gadzira account yako" },
-    subheading: {
-      login: "Pinda kuti utarisire purazi rako nezvinhu zvaunotengesa.",
-      signup: "Batana nevarimi nevatengi vari kutengeserana nenzira yakachenjera.",
-    },
-    iAmA: "Ndiri...",
-    farmer: "Murimi",
-    buyer: "Mutengi",
-    submit: { login: "Pinda", signup: "Gadzira Account" },
-    submitLoading: { login: "Kupinda...", signup: "Kugadzira account..." },
-    switchPrompt: { login: "Mutsva ku Batanai.zw? ", signup: "Une account here? " },
-    switchAction: { login: "Gadzira account", signup: "Pinda" },
-  },
-}
 
 export default function AuthPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("splash")
-  const [lang, setLang] = useState<Lang>("en")
 
   useEffect(() => {
     if (hasOnboarded()) setStep("auth")
-    const savedLang = window.localStorage.getItem("batanai.lang")
-    if (savedLang === "en" || savedLang === "sh") setLang(savedLang)
   }, [])
 
   function handleGetStarted() {
@@ -87,34 +47,34 @@ export default function AuthPage() {
     setStep("auth")
   }
 
-  function handleLangChange(next: Lang) {
-    setLang(next)
-    window.localStorage.setItem("batanai.lang", next)
-  }
-
   if (step === "splash") {
-    return (
-      <SplashScreen
-        lang={lang}
-        onLangChange={handleLangChange}
-        onGetStarted={handleGetStarted}
-      />
-    )
+    return <SplashScreen onGetStarted={handleGetStarted} />
   }
 
-  return <AuthForm router={router} lang={lang} onLangChange={handleLangChange} />
+  return <AuthForm router={router} />
 }
 
-function SplashScreen({
-  lang,
-  onLangChange,
-  onGetStarted,
-}: {
-  lang: Lang
-  onLangChange: (lang: Lang) => void
-  onGetStarted: () => void
-}) {
-  const t = copy[lang]
+function LangSwitch({ locale, setLocale, className }: { locale: Locale; setLocale: (l: Locale) => void; className: string }) {
+  return (
+    <div className={className}>
+      {(["en", "sh"] as Locale[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLocale(l)}
+          className={`rounded-full px-4 py-1.5 transition-colors ${
+            locale === l ? "bg-primary text-primary-foreground" : "text-foreground/80 hover:text-foreground"
+          }`}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SplashScreen({ onGetStarted }: { onGetStarted: () => void }) {
+  const { t, locale, setLocale } = useLocale()
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Image src="/images/onboarding-hero.jpg" alt="" fill priority className="object-cover grayscale" />
@@ -123,37 +83,22 @@ function SplashScreen({
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <div className="flex justify-end p-5 sm:p-6">
-          <div className="glass-strong flex gap-1 rounded-full p-1 text-sm font-semibold">
-            {(["en", "sh"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => onLangChange(l)}
-                className={`rounded-full px-4 py-1.5 transition-colors ${
-                  lang === l
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/80 hover:text-foreground"
-                }`}
-              >
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <LangSwitch locale={locale} setLocale={setLocale} className="glass-strong flex gap-1 rounded-full p-1 text-sm font-semibold" />
         </div>
 
         <div className="mt-auto space-y-6 px-6 pb-10 sm:px-10 sm:pb-14">
           <div>
             <h1 className="max-w-md text-balance font-serif text-3xl italic font-semibold leading-tight sm:text-4xl">
-              {t.tagline[0]}
+              {t("auth.tagline1")}
               <br />
-              {t.tagline[1]}
+              {t("auth.tagline2")}
             </h1>
             <p className="mt-4 max-w-sm border-l-2 border-primary pl-3 text-sm italic text-foreground/85">
-              &ldquo;Mawoko mazhinji haatadzi basa&rdquo;
+              {t("auth.quote")}
             </p>
           </div>
           <Button onClick={onGetStarted} size="lg" className="w-full sm:w-auto sm:px-8">
-            {t.cta}
+            {t("auth.getStarted")}
             <ArrowRight className="size-4" />
           </Button>
         </div>
@@ -162,16 +107,8 @@ function SplashScreen({
   )
 }
 
-function AuthForm({
-  router,
-  lang,
-  onLangChange,
-}: {
-  router: ReturnType<typeof useRouter>
-  lang: Lang
-  onLangChange: (lang: Lang) => void
-}) {
-  const t = copy[lang]
+function AuthForm({ router }: { router: ReturnType<typeof useRouter> }) {
+  const { t, locale, setLocale } = useLocale()
   const [mode, setMode] = useState<Mode>("login")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -187,13 +124,13 @@ function AuthForm({
   function validate() {
     const next: Record<string, string> = {}
     if (mode === "signup") {
-      if (name.trim().length < 2) next.name = "Enter your full name."
+      if (name.trim().length < 2) next.name = t("auth.errorName")
       if (farmName.trim().length < 2)
-        next.farmName = role === "buyer" ? "Enter your business name." : "Enter your farm name."
-      if (!consent) next.consent = "Consent is required to continue."
+        next.farmName = role === "buyer" ? t("auth.errorBusinessName") : t("auth.errorFarmName")
+      if (!consent) next.consent = t("auth.errorConsent")
     }
-    if (!validateEmail(email)) next.email = "Enter a valid email address."
-    if (password.length < 8) next.password = "Password must be at least 8 characters."
+    if (!validateEmail(email)) next.email = t("auth.errorEmail")
+    if (password.length < 8) next.password = t("auth.errorPassword")
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -211,7 +148,7 @@ function AuthForm({
       }
       router.push("/dashboard")
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Couldn't reach the server. Check your connection and try again."
+      const message = err instanceof ApiError ? err.message : t("auth.errorGeneric")
       setErrors((prev) => ({ ...prev, form: message }))
     } finally {
       setLoading(false)
@@ -239,12 +176,12 @@ function AuthForm({
 
             <div className="space-y-6">
               <h2 className="max-w-sm text-pretty font-serif text-2xl italic font-semibold leading-snug">
-                Grow with confidence. Trade with trust.
+                {t("auth.heroHeadline")}
               </h2>
               <ul className="space-y-3 text-sm text-foreground/85">
-                <FeatureRow icon={<Sprout className="size-4" />} text="Rule-based crop & planting guidance" />
-                <FeatureRow icon={<BarChart3 className="size-4" />} text="Works offline, syncs when you're back online" />
-                <FeatureRow icon={<ShieldCheck className="size-4" />} text="Transparent marketplace, no middlemen" />
+                <FeatureRow icon={<Sprout className="size-4" />} text={t("auth.featureAdvice")} />
+                <FeatureRow icon={<BarChart3 className="size-4" />} text={t("auth.featureOffline")} />
+                <FeatureRow icon={<ShieldCheck className="size-4" />} text={t("auth.featureTransparent")} />
               </ul>
             </div>
           </div>
@@ -257,27 +194,16 @@ function AuthForm({
               <Logo size={36} className="lg:hidden" />
               <span className="font-serif text-lg italic font-semibold tracking-tight lg:hidden">Batanai.zw</span>
             </div>
-            <div className="glass ml-auto flex gap-1 rounded-full p-1 text-xs font-semibold">
-              {(["en", "sh"] as Lang[]).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => onLangChange(l)}
-                  className={`rounded-full px-3 py-1.5 transition-colors ${
-                    lang === l
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <LangSwitch locale={locale} setLocale={setLocale} className="glass ml-auto flex gap-1 rounded-full p-1 text-xs font-semibold" />
           </div>
 
           <div className="mb-6">
-            <h1 className="font-serif text-2xl italic font-semibold tracking-tight">{t.heading[mode]}</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">{t.subheading[mode]}</p>
+            <h1 className="font-serif text-2xl italic font-semibold tracking-tight">
+              {mode === "login" ? t("auth.headingLogin") : t("auth.headingSignup")}
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {mode === "login" ? t("auth.subheadingLogin") : t("auth.subheadingSignup")}
+            </p>
           </div>
 
           {/* Mode toggle */}
@@ -296,19 +222,19 @@ function AuthForm({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t.tabs[m]}
+                {m === "login" ? t("auth.tabLogin") : t("auth.tabSignup")}
               </button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground/90">{t.iAmA}</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground/90">{t("auth.iAmA")}</label>
               <div className="glass grid grid-cols-2 gap-1 rounded-2xl p-1">
                 {(
                   [
-                    { value: "farmer", label: t.farmer },
-                    { value: "buyer", label: t.buyer },
+                    { value: "farmer", label: t("auth.farmer") },
+                    { value: "buyer", label: t("auth.buyer") },
                   ] as const
                 ).map((opt) => (
                   <button
@@ -332,18 +258,18 @@ function AuthForm({
               <>
                 <Field
                   id="name"
-                  label="Full name"
+                  label={t("auth.fullName")}
                   icon={<User className="size-4" />}
-                  placeholder="Tendai Moyo"
+                  placeholder={t("auth.fullNamePlaceholder")}
                   value={name}
                   onChange={setName}
                   error={errors.name}
                 />
                 <Field
                   id="farmName"
-                  label={role === "buyer" ? "Business name" : "Farm name"}
+                  label={role === "buyer" ? t("auth.businessName") : t("auth.farmName")}
                   icon={<Sprout className="size-4" />}
-                  placeholder={role === "buyer" ? "FreshPack Processors" : "Chinhoyi Family Farm"}
+                  placeholder={role === "buyer" ? t("auth.businessNamePlaceholder") : t("auth.farmNamePlaceholder")}
                   value={farmName}
                   onChange={setFarmName}
                   error={errors.farmName}
@@ -353,10 +279,10 @@ function AuthForm({
 
             <Field
               id="email"
-              label="Email"
+              label={t("auth.email")}
               type="email"
               icon={<Mail className="size-4" />}
-              placeholder="you@farm.com"
+              placeholder={t("auth.emailPlaceholder")}
               value={email}
               onChange={setEmail}
               error={errors.email}
@@ -364,7 +290,7 @@ function AuthForm({
 
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground/90">
-                Password
+                {t("auth.password")}
               </label>
               <div
                 className={`glass flex items-center gap-2.5 rounded-2xl px-4 py-3 ${
@@ -383,7 +309,7 @@ function AuthForm({
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -401,8 +327,7 @@ function AuthForm({
                     onChange={(e) => setConsent(e.target.checked)}
                     className="mt-0.5 size-4 accent-primary"
                   />
-                  I agree that anonymized usage data and ratings may be used for academic
-                  research. Participation is voluntary and I can stop at any time.
+                  {t("auth.consentLabel")}
                 </label>
                 {errors.consent && <p className="mt-1.5 text-xs text-destructive">{errors.consent}</p>}
               </div>
@@ -412,10 +337,10 @@ function AuthForm({
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 text-muted-foreground">
                   <input type="checkbox" className="size-4 accent-primary" defaultChecked />
-                  Remember me
+                  {t("auth.rememberMe")}
                 </label>
                 <button type="button" className="font-medium text-accent hover:underline">
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </button>
               </div>
             )}
@@ -426,11 +351,11 @@ function AuthForm({
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  {t.submitLoading[mode]}
+                  {mode === "login" ? t("auth.submitLoginLoading") : t("auth.submitSignupLoading")}
                 </>
               ) : (
                 <>
-                  {t.submit[mode]}
+                  {mode === "login" ? t("auth.submitLogin") : t("auth.submitSignup")}
                   <ArrowRight className="size-4" />
                 </>
               )}
@@ -438,7 +363,7 @@ function AuthForm({
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            {t.switchPrompt[mode]}
+            {mode === "login" ? t("auth.switchPromptLogin") : t("auth.switchPromptSignup")}
             <button
               type="button"
               onClick={() => {
@@ -447,7 +372,7 @@ function AuthForm({
               }}
               className="font-semibold text-accent hover:underline"
             >
-              {t.switchAction[mode]}
+              {mode === "login" ? t("auth.switchActionLogin") : t("auth.switchActionSignup")}
             </button>
           </p>
         </section>

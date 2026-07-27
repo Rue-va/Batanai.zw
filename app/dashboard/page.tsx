@@ -32,6 +32,7 @@ import { GlassCard, Pill, SectionTitle } from '@/components/ui/glass'
 import { RadialGauge } from '@/components/radial-gauge'
 import { YieldBars, DonutChart } from '@/components/charts'
 import { getSession, type SessionUser } from '@/lib/auth'
+import { useLocale } from '@/lib/i18n/context'
 import {
   farmer,
   kpis,
@@ -50,6 +51,24 @@ const kpiIcons = { layers: Layers, map: Map, sprout: Sprout, tasks: ListChecks }
 const forecastIcons = { sun: Sun, cloud: Cloud, rain: CloudRain }
 const taskIcons = { water: Droplet, fertilize: FlaskConical, scan: Bug, soil: Sprout }
 const tradeStatusTone = { Interested: 'accent', Negotiating: 'lime', Agreed: 'lime', Completed: 'muted' } as const
+const kpiLabelKeys = {
+  'Active Plots': 'kpiActivePlots',
+  'Total Area': 'kpiTotalArea',
+  'Crops Growing': 'kpiCropsGrowing',
+  'Open Tasks': 'kpiOpenTasks',
+} as const
+const kpiUnitKeys = {
+  plots: 'unitPlots',
+  hectares: 'unitHectares',
+  varieties: 'unitVarieties',
+  'this week': 'unitThisWeek',
+} as const
+const taskTitleKeys: Record<string, string> = {
+  'Irrigation — Maize plot': 'taskIrrigationMaize',
+  'Fertilizer application — Groundnut plot': 'taskFertilizerGroundnut',
+  'Pest inspection — Potato bed': 'taskPestPotato',
+  'Soil moisture check — Sweet corn plot': 'taskSoilSweetCorn',
+}
 
 export default function DashboardPage() {
   const [user, setUser] = useState<SessionUser | null>(null)
@@ -62,6 +81,7 @@ export default function DashboardPage() {
 }
 
 function FarmerDashboard({ user }: { user: SessionUser | null }) {
+  const { t } = useLocale()
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       {/* Welcome hero */}
@@ -76,16 +96,16 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
         <div className="absolute inset-0 bg-gradient-to-r from-forest-950/85 via-forest-950/60 to-transparent" />
         <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <div>
-            <p className="mb-1 text-sm text-muted-foreground">Welcome back,</p>
+            <p className="mb-1 text-sm text-muted-foreground">{t('dashboard.welcomeBack')}</p>
             <h1 className="font-serif text-2xl italic font-semibold text-balance sm:text-3xl">
-              {user?.name ?? farmer.name}&apos;s Farm Overview
+              {t('dashboard.farmOverview', { name: user?.name ?? farmer.name })}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Pill tone="lime">
                 <MapPin className="size-3" />
                 {farmer.location}
               </Pill>
-              <Pill tone="accent">Rating {farmer.rating} ★</Pill>
+              <Pill tone="accent">{t('dashboard.ratingLabel', { rating: farmer.rating })}</Pill>
               <Pill tone="muted">{farmer.certifications[0]}</Pill>
             </div>
           </div>
@@ -95,9 +115,9 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
             </div>
             <div className="text-sm">
               <p className="font-semibold text-primary">
-                {tasks.filter((t) => t.status === 'due').length} task due today
+                {t('dashboard.taskDueToday', { count: tasks.filter((t) => t.status === 'due').length })}
               </p>
-              <p className="text-muted-foreground">{tasks.length} recommended actions this week</p>
+              <p className="text-muted-foreground">{t('dashboard.tasksThisWeek', { count: tasks.length })}</p>
             </div>
           </div>
         </div>
@@ -107,6 +127,8 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((kpi) => {
           const Icon = kpiIcons[kpi.icon as keyof typeof kpiIcons]
+          const labelKey = kpiLabelKeys[kpi.label as keyof typeof kpiLabelKeys]
+          const unitKey = kpiUnitKeys[kpi.unit as keyof typeof kpiUnitKeys]
           return (
             <GlassCard key={kpi.label} className="p-5">
               <div className="mb-3 flex items-center justify-between">
@@ -121,10 +143,10 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
               <p className="text-2xl font-bold">
                 {kpi.value}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  {kpi.unit}
+                  {unitKey ? t(`dashboard.${unitKey}`) : kpi.unit}
                 </span>
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{kpi.label}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{labelKey ? t(`dashboard.${labelKey}`) : kpi.label}</p>
             </GlassCard>
           )
         })}
@@ -142,23 +164,23 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
             />
             <div className="absolute inset-0 bg-forest-950/25" />
             {/* plot markers */}
-            <FieldMarker top="28%" left="24%" tone="good" label="Maize plot" />
-            <FieldMarker top="55%" left="52%" tone="warn" label="Potato bed" />
-            <FieldMarker top="40%" left="74%" tone="good" label="Groundnut plot" />
+            <FieldMarker top="28%" left="24%" tone="good" label={t('dashboard.maizePlot')} />
+            <FieldMarker top="55%" left="52%" tone="warn" label={t('dashboard.potatoBed')} />
+            <FieldMarker top="40%" left="74%" tone="good" label={t('dashboard.groundnutPlot')} />
             <div className="glass-strong absolute left-4 top-4 rounded-2xl px-4 py-3">
-              <p className="text-xs text-muted-foreground">Your Plots</p>
-              <p className="text-lg font-bold text-primary">3 active</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.yourPlots')}</p>
+              <p className="text-lg font-bold text-primary">{t('dashboard.plotsActive', { count: 3 })}</p>
             </div>
             <div className="glass-strong absolute bottom-4 right-4 flex gap-4 rounded-2xl px-4 py-2.5 text-xs">
-              <Legend color="var(--chart-1)" label="No active alerts" />
-              <Legend color="var(--accent)" label="Pest/disease alert" />
+              <Legend color="var(--chart-1)" label={t('dashboard.noActiveAlerts')} />
+              <Legend color="var(--accent)" label={t('dashboard.pestAlert')} />
             </div>
           </div>
         </GlassCard>
 
         {/* Weather */}
         <GlassCard className="p-6">
-          <SectionTitle title="Weather Today" />
+          <SectionTitle title={t('dashboard.weatherToday')} action={<Pill tone="muted">{t('common.sampleData')}</Pill>} />
           <div className="flex items-center justify-between">
             <div>
               <p className="text-4xl font-bold">{weather.temp}°C</p>
@@ -168,9 +190,9 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
             <Cloud className="size-14 text-accent" />
           </div>
           <div className="my-4 grid grid-cols-3 gap-2 text-center">
-            <WeatherStat icon={Droplets} label="Humidity" value={`${weather.humidity}%`} />
-            <WeatherStat icon={Wind} label="Wind" value={`${weather.wind} km/h`} />
-            <WeatherStat icon={CloudRain} label="Rain" value={`${weather.rainChance}%`} />
+            <WeatherStat icon={Droplets} label={t('dashboard.humidity')} value={`${weather.humidity}%`} />
+            <WeatherStat icon={Wind} label={t('dashboard.wind')} value={`${weather.wind} km/h`} />
+            <WeatherStat icon={CloudRain} label={t('dashboard.rain')} value={`${weather.rainChance}%`} />
           </div>
           <div className="flex justify-between border-t border-border pt-4">
             {weather.forecast.map((f) => {
@@ -191,20 +213,16 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
         {/* National maize yield trend */}
         <GlassCard className="p-6 lg:col-span-2">
           <SectionTitle
-            title="National Maize Yield Trend"
-            action={<Pill tone="muted">tonnes/hectare</Pill>}
+            title={t('dashboard.nationalMaizeYieldTrend')}
+            action={<Pill tone="muted">{t('dashboard.tonnesPerHectare')}</Pill>}
           />
           <YieldBars data={nationalMaizeYield} />
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            National average yield by season — use this to see how your own harvest compares to
-            the country trend. 2023/24&apos;s drop reflects the El Niño drought. Source: Zimbabwe
-            Ministry of Agriculture / USDA FAS Grain &amp; Feed Annual reporting.
-          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{t('dashboard.maizeYieldNote')}</p>
         </GlassCard>
 
         {/* Crop distribution */}
         <GlassCard className="p-6">
-          <SectionTitle title="Crop Distribution" />
+          <SectionTitle title={t('dashboard.cropDistribution')} action={<Pill tone="muted">{t('common.sampleData')}</Pill>} />
           <DonutChart data={cropDistribution} />
           <div className="mt-3 space-y-1.5">
             {cropDistribution.map((c) => (
@@ -224,16 +242,17 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
         {/* Upcoming tasks */}
         <GlassCard className="p-6">
           <SectionTitle
-            title="Upcoming Tasks"
+            title={t('dashboard.upcomingTasks')}
             action={
               <button className="flex items-center gap-0.5 text-xs text-accent hover:underline">
-                View all <ChevronRight className="size-3" />
+                {t('common.viewAll')} <ChevronRight className="size-3" />
               </button>
             }
           />
           <div className="space-y-2.5">
             {tasks.map((task) => {
               const Icon = taskIcons[task.kind as keyof typeof taskIcons]
+              const titleKey = taskTitleKeys[task.title]
               return (
                 <div
                   key={task.title}
@@ -243,11 +262,11 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
                     <Icon className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{task.title}</p>
+                    <p className="truncate text-sm font-medium">{titleKey ? t(`dashboard.${titleKey}`) : task.title}</p>
                     <p className="text-xs text-muted-foreground">{task.time}</p>
                   </div>
                   <Pill tone={task.status === 'due' ? 'accent' : 'muted'}>
-                    {task.status === 'due' ? 'Due' : 'Upcoming'}
+                    {task.status === 'due' ? t('dashboard.dueTag') : t('dashboard.upcomingTag')}
                   </Pill>
                 </div>
               )
@@ -257,7 +276,15 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
 
         {/* Soil test */}
         <GlassCard className="p-6">
-          <SectionTitle title="Latest Soil Test" action={<Pill tone="muted">{soilTest.sampledDate}</Pill>} />
+          <SectionTitle
+            title={t('dashboard.latestSoilTest')}
+            action={
+              <div className="flex items-center gap-1.5">
+                <Pill tone="muted">{soilTest.sampledDate}</Pill>
+                <Pill tone="muted">{t('common.sampleData')}</Pill>
+              </div>
+            }
+          />
           <div className="space-y-3">
             {soilTest.results.map((s) => (
               <div key={s.label} className="rounded-2xl bg-white/5 p-3">
@@ -274,8 +301,7 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
           </div>
           <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
             <FileText className="mt-0.5 size-3 shrink-0" />
-            From {soilTest.source}. Bands follow FAO / Zimbabwe Ministry of Agriculture soil
-            fertility sufficiency ranges — not a live sensor reading.
+            {t('dashboard.soilTestNote', { source: soilTest.source })}
           </p>
         </GlassCard>
       </div>
@@ -284,17 +310,18 @@ function FarmerDashboard({ user }: { user: SessionUser | null }) {
 }
 
 function BuyerDashboard({ user }: { user: SessionUser | null }) {
+  const { t } = useLocale()
   // Calculated, not fabricated: completed trades as a share of all trades
   // ever opened (completed + still-active inquiries).
   const totalTrades = buyerStats.completedTrades + buyerStats.activeInquiries
   const completionRate = Math.round((buyerStats.completedTrades / totalTrades) * 100)
 
   const buyerKpis = [
-    { label: 'Active Inquiries', value: String(buyerStats.activeInquiries), unit: 'open', icon: Handshake },
-    { label: 'Completed Trades', value: String(buyerStats.completedTrades), unit: 'total', icon: CheckCircle2 },
-    { label: 'Verified Farmers', value: String(buyerStats.verifiedFarmers), unit: 'followed', icon: Users },
-    { label: 'This Month', value: `$${buyerStats.monthlySpend.toLocaleString()}`, unit: 'spend', icon: Wallet },
-  ]
+    { labelKey: 'kpiActiveInquiries', value: String(buyerStats.activeInquiries), unitKey: 'unitOpen', icon: Handshake },
+    { labelKey: 'kpiCompletedTrades', value: String(buyerStats.completedTrades), unitKey: 'unitTotal', icon: CheckCircle2 },
+    { labelKey: 'kpiVerifiedFarmers', value: String(buyerStats.verifiedFarmers), unitKey: 'unitFollowed', icon: Users },
+    { labelKey: 'kpiThisMonth', value: `$${buyerStats.monthlySpend.toLocaleString()}`, unitKey: 'unitSpend', icon: Wallet },
+  ] as const
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
@@ -310,25 +337,25 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
         <div className="absolute inset-0 bg-gradient-to-r from-forest-950/85 via-forest-950/60 to-transparent" />
         <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <div>
-            <p className="mb-1 text-sm text-muted-foreground">Welcome back,</p>
+            <p className="mb-1 text-sm text-muted-foreground">{t('dashboard.welcomeBack')}</p>
             <h1 className="font-serif text-2xl italic font-semibold text-balance sm:text-3xl">
-              {user?.farmName ?? 'Your business'}&apos;s Sourcing Overview
+              {t('dashboard.sourcingOverview', { name: user?.farmName ?? t('dashboard.yourBusiness') })}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Pill tone="lime">
                 <BadgeCheck className="size-3" />
-                Verified Buyer
+                {t('dashboard.verifiedBuyer')}
               </Pill>
-              <Pill tone="accent">{buyerStats.activeInquiries} active inquiries</Pill>
-              <Pill tone="muted">{buyerStats.verifiedFarmers} farmers followed</Pill>
+              <Pill tone="accent">{t('dashboard.activeInquiries', { count: buyerStats.activeInquiries })}</Pill>
+              <Pill tone="muted">{t('dashboard.farmersFollowed', { count: buyerStats.verifiedFarmers })}</Pill>
             </div>
           </div>
           <div className="flex items-center gap-4 rounded-2xl bg-white/5 p-4 backdrop-blur-sm">
-            <RadialGauge value={completionRate} sublabel="Completed" label={`${completionRate}%`} />
+            <RadialGauge value={completionRate} sublabel={t('common.statusCompleted')} label={`${completionRate}%`} />
             <div className="text-sm">
-              <p className="font-semibold text-primary">Trade completion rate</p>
+              <p className="font-semibold text-primary">{t('dashboard.tradeCompletionRate')}</p>
               <p className="text-muted-foreground">
-                {buyerStats.completedTrades} of {totalTrades} trades opened have closed
+                {t('dashboard.tradesClosedNote', { completed: buyerStats.completedTrades, total: totalTrades })}
               </p>
             </div>
           </div>
@@ -338,7 +365,7 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {buyerKpis.map((kpi) => (
-          <GlassCard key={kpi.label} className="p-5">
+          <GlassCard key={kpi.labelKey} className="p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
                 <kpi.icon className="size-5" />
@@ -346,9 +373,9 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
             </div>
             <p className="text-2xl font-bold">
               {kpi.value}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">{kpi.unit}</span>
+              <span className="ml-1 text-xs font-normal text-muted-foreground">{t(`dashboard.${kpi.unitKey}`)}</span>
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{kpi.label}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t(`dashboard.${kpi.labelKey}`)}</p>
           </GlassCard>
         ))}
       </div>
@@ -356,7 +383,7 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Sourcing regions */}
         <GlassCard className="p-6">
-          <SectionTitle title="Sourcing by Region" />
+          <SectionTitle title={t('dashboard.sourcingByRegion')} action={<Pill tone="muted">{t('common.sampleData')}</Pill>} />
           <DonutChart data={sourcingRegions} />
           <div className="mt-3 space-y-1.5">
             {sourcingRegions.map((r) => (
@@ -373,7 +400,7 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
 
         {/* Market prices */}
         <GlassCard className="p-6 lg:col-span-2">
-          <SectionTitle title="Live Market Prices" action={<Pill tone="muted">Regional benchmark</Pill>} />
+          <SectionTitle title={t('dashboard.liveMarketPrices')} action={<Pill tone="muted">{t('dashboard.regionalBenchmark')}</Pill>} />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {marketPrices.map((m) => {
               const up = m.change >= 0
@@ -396,11 +423,14 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
       {/* Recent trades */}
       <section>
         <SectionTitle
-          title="Recent Activity"
+          title={t('dashboard.recentActivity')}
           action={
-            <a href="/marketplace" className="flex items-center gap-0.5 text-xs text-accent hover:underline">
-              Browse more <ChevronRight className="size-3" />
-            </a>
+            <div className="flex items-center gap-2">
+              <Pill tone="muted">{t('common.sampleData')}</Pill>
+              <a href="/marketplace" className="flex items-center gap-0.5 text-xs text-accent hover:underline">
+                {t('common.browseMore')} <ChevronRight className="size-3" />
+              </a>
+            </div>
           }
         />
         <GlassCard className="overflow-hidden">
@@ -408,27 +438,27 @@ function BuyerDashboard({ user }: { user: SessionUser | null }) {
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="px-5 py-3 font-medium">Crop</th>
-                  <th className="px-5 py-3 font-medium">Farmer</th>
-                  <th className="px-5 py-3 font-medium">Quantity</th>
-                  <th className="px-5 py-3 font-medium">Total</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">{t('dashboard.tableCrop')}</th>
+                  <th className="px-5 py-3 font-medium">{t('dashboard.tableFarmer')}</th>
+                  <th className="px-5 py-3 font-medium">{t('dashboard.tableQuantity')}</th>
+                  <th className="px-5 py-3 font-medium">{t('dashboard.tableTotal')}</th>
+                  <th className="px-5 py-3 font-medium">{t('dashboard.tableStatus')}</th>
                 </tr>
               </thead>
               <tbody>
-                {recentTrades.map((t) => (
-                  <tr key={`${t.crop}-${t.farmerName}`} className="border-b border-border/50 last:border-0">
-                    <td className="px-5 py-3 font-medium">{t.crop}</td>
+                {recentTrades.map((t2) => (
+                  <tr key={`${t2.crop}-${t2.farmerName}`} className="border-b border-border/50 last:border-0">
+                    <td className="px-5 py-3 font-medium">{t2.crop}</td>
                     <td className="px-5 py-3 text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Star className="size-3 fill-accent text-accent" />
-                        {t.farmerName}
+                        {t2.farmerName}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">{t.quantity}</td>
-                    <td className="px-5 py-3 font-semibold">${t.total.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{t2.quantity}</td>
+                    <td className="px-5 py-3 font-semibold">${t2.total.toLocaleString()}</td>
                     <td className="px-5 py-3">
-                      <Pill tone={tradeStatusTone[t.status as keyof typeof tradeStatusTone]}>{t.status}</Pill>
+                      <Pill tone={tradeStatusTone[t2.status as keyof typeof tradeStatusTone]}>{t2.status}</Pill>
                     </td>
                   </tr>
                 ))}
