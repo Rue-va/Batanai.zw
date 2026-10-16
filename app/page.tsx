@@ -392,7 +392,7 @@ function Footer() {
 
         <div className="mt-10 flex flex-col gap-2 border-t border-white/5 pt-6 text-xs text-muted-foreground/70 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} Batanai.zw. A research prototype built for a thesis on offline-first agricultural marketplaces in Zimbabwe.</p>
-          <p className="italic">&ldquo;Mawoko mazhinji haatadzi basa&rdquo; — many hands don't fail a job.</p>
+          <p className="italic">&ldquo;Mawoko mazhinji haatadzi basa&rdquo;.</p>
         </div>
       </div>
     </footer>
