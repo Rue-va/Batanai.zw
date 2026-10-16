@@ -214,9 +214,7 @@ function Features() {
     <section id="features" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="font-serif text-3xl italic font-semibold text-balance sm:text-4xl">One marketplace, built for both sides of the trade</h2>
-        <p className="mt-3 text-muted-foreground">
-          Everything below is a real, working part of Batanai.zw today — not a roadmap.
-        </p>
+  
       </div>
 
       <div className="mt-14 grid gap-10 lg:grid-cols-2">
